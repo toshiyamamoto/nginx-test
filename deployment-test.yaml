@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: nginx-test
+      app.kubernetes.io/component: nginx-test
+      app.kubernetes.io/instance: nginx-test
+    name: nginx-test
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      deploymentconfig: nginx-test
+    template:
+      metadata:
+        labels:
+          deploymentconfig: nginx-test
+      spec:
+        containers:
+        - image: nginx-test
+          imagePullPolicy: Always
+          name: nginx-test
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - nginx-test
+        from:
+          kind: ImageStreamTag
+          name: nginx-test:test
+      type: ImageChange
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    labels:
+      app: nginx-test
+      app.kubernetes.io/component: nginx-test
+      app.kubernetes.io/instance: nginx-test
+    name: nginx-test
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: nginx-test
+      app.kubernetes.io/component: nginx-test
+      app.kubernetes.io/instance: nginx-test
+    name: nginx-test
+  spec:
+    port:
+      targetPort: 8080-tcp
+    tls:
+      #insecureEdgeTerminationPolicy: Redirect
+      insecureEdgeTerminationPolicy: None
+      termination: edge
+      certificate: |
+        -----BEGIN CERTIFICATE-----
+        MIIBSTCB8KADAgECAhAojM4FRwbFnh/GP17DaLTRMAoGCCqGSM49BAMCMBYxFDAS
+        BgNVBAMTC2luc3RhbmEtdGxzMB4XDTIzMTAxMDE3MDAxOFoXDTI0MDEwODE3MDAx
+        OFowFjEUMBIGA1UEAxMLaW5zdGFuYS10bHMwWTATBgcqhkjOPQIBBggqhkjOPQMB
+        BwNCAAR47iplwNGJyD7hD9N2TXhaIG5kmseKYdNWcFhNoZBrPerDX/xT1IhHNDzJ
+        fS9o3FH8qmUsRpB7xsKQYxnijLnIoyAwHjAOBgNVHQ8BAf8EBAMCBaAwDAYDVR0T
+        AQH/BAIwADAKBggqhkjOPQQDAgNIADBFAiEA9M7oOuvYA31gX7pfUs3Vp+YmWKW0
+        4EeoDI6h5wfuDmECICD6DXfzDyVNgOvB7p5fZ6X++JxZMzWobvdgBusC4wo4
+        -----END CERTIFICATE-----
+      key: |
+        -----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIOLRVx0+8Ns6fESWLZ8dvMgfA6+2ZdPNTSP3SGOOgQ2hoAoGCCqGSM49
+        AwEHoUQDQgAEeO4qZcDRicg+4Q/Tdk14WiBuZJrHimHTVnBYTaGQaz3qw1/8U9SI
+        RzQ8yX0vaNxR/KplLEaQe8bCkGMZ4oy5yA==
+        -----END EC PRIVATE KEY-----      
+      to:
+        kind: Service
+        name: nginx-test
+        weight: 100
+      wildcardPolicy: None
